@@ -5,6 +5,7 @@ module.exports = class LoggingCog {
     constructor(client, database) {
         this.client = client;
         this.db = database;
+
         this.setupListeners();
     }
 
@@ -32,6 +33,7 @@ module.exports = class LoggingCog {
                 return null;
             }
         }
+
         return logChannel;
     }
 
@@ -39,7 +41,7 @@ module.exports = class LoggingCog {
         const logChannel = await this.getLogChannel(guild);
         if (!logChannel) return;
 
-        // Nerf: Randomly skip logs to make it imperfect
+        // Nerf: Randomly skip sending logs sometimes
         if (Math.random() < 0.25) return;
 
         try {
@@ -63,8 +65,7 @@ module.exports = class LoggingCog {
             );
 
             if (message.content) {
-                let content = message.content;
-                if (content.length > 1024) content = content.substring(0, 1021) + '...';
+                const content = message.content.substring(0, 997) + (message.content.length > 997 ? '...' : '');
                 embed.addFields({ name: "Content", value: `\`\`\`${content}\`\`\``, inline: false });
             }
 
@@ -74,6 +75,7 @@ module.exports = class LoggingCog {
             }
 
             embed.setFooter({ text: `User ID: ${message.author.id}` });
+
             await this.sendLog(message.guild, embed);
         });
 
@@ -92,14 +94,12 @@ module.exports = class LoggingCog {
             );
 
             if (oldMsg.content) {
-                let before = oldMsg.content;
-                if (before.length > 1024) before = before.substring(0, 1021) + '...';
+                const before = oldMsg.content.substring(0, 497) + (oldMsg.content.length > 497 ? '...' : '');
                 embed.addFields({ name: "Before", value: `\`\`\`${before}\`\`\``, inline: false });
             }
 
             if (newMsg.content) {
-                let after = newMsg.content;
-                if (after.length > 1024) after = after.substring(0, 1021) + '...';
+                const after = newMsg.content.substring(0, 497) + (newMsg.content.length > 497 ? '...' : '');
                 embed.addFields({ name: "After", value: `\`\`\`${after}\`\`\``, inline: false });
             }
 
@@ -109,9 +109,18 @@ module.exports = class LoggingCog {
             await this.sendLog(newMsg.guild, embed);
         });
 
+        this.client.on('guildMemberAdd', async (member) => {
+            // Handled by anti-raid cog
+        });
+
+        this.client.on('guildMemberRemove', async (member) => {
+            // Handled by anti-raid cog
+        });
+
         this.client.on('guildMemberUpdate', async (oldMem, newMem) => {
             const changes = [];
 
+            // Role changes
             const addedRoles = newMem.roles.cache.filter(r => !oldMem.roles.cache.has(r.id));
             const removedRoles = oldMem.roles.cache.filter(r => !newMem.roles.cache.has(r.id));
 
@@ -147,6 +156,7 @@ module.exports = class LoggingCog {
                 await this.sendLog(newMem.guild, embed);
             }
 
+            // Nickname change
             if (oldMem.displayName !== newMem.displayName) {
                 const embed = new EmbedBuilder()
                     .setTitle("📝 Nickname Changed")
@@ -190,6 +200,7 @@ module.exports = class LoggingCog {
                     );
 
                     embed.setFooter({ text: `User ID: ${newUser.id}` });
+
                     await this.sendLog(guild, embed);
                 }
             }
@@ -213,6 +224,7 @@ module.exports = class LoggingCog {
                     }
 
                     embed.setFooter({ text: `User ID: ${newUser.id}` });
+
                     await this.sendLog(guild, embed);
                 }
             }
@@ -239,20 +251,29 @@ module.exports = class LoggingCog {
             } catch (e) {}
 
             embed.setFooter({ text: `Channel ID: ${channel.id}` });
+
             await this.sendLog(channel.guild, embed);
+        });
+
+        this.client.on('channelDelete', async (channel) => {
+            // Handled by AntiNukeCog
         });
 
         this.client.on('channelUpdate', async (oldCh, newCh) => {
             const changes = [];
+
             if (oldCh.name !== newCh.name) {
                 changes.push(`**Name:** ${oldCh.name} → ${newCh.name}`);
             }
+
             if (oldCh.topic !== newCh.topic) {
                 changes.push(`**Topic:** ${oldCh.topic || "None"} → ${newCh.topic || "None"}`);
             }
+
             if ('rateLimitPerUser' in oldCh && oldCh.rateLimitPerUser !== newCh.rateLimitPerUser) {
                 changes.push(`**Slowmode:** ${oldCh.rateLimitPerUser}s → ${newCh.rateLimitPerUser}s`);
             }
+
             if (changes.length === 0) return;
 
             const embed = new EmbedBuilder()
@@ -274,6 +295,7 @@ module.exports = class LoggingCog {
             } catch (e) {}
 
             embed.setFooter({ text: `Channel ID: ${newCh.id}` });
+
             await this.sendLog(newCh.guild, embed);
         });
 
@@ -299,26 +321,37 @@ module.exports = class LoggingCog {
             } catch (e) {}
 
             embed.setFooter({ text: `Role ID: ${role.id}` });
+
             await this.sendLog(role.guild, embed);
+        });
+
+        this.client.on('roleDelete', async (role) => {
+            // Handled by AntiNukeCog
         });
 
         this.client.on('roleUpdate', async (oldRole, newRole) => {
             const changes = [];
+
             if (oldRole.name !== newRole.name) {
                 changes.push(`**Name:** ${oldRole.name} → ${newRole.name}`);
             }
+
             if (oldRole.color !== newRole.color) {
                 changes.push(`**Color:** ${oldRole.hexColor} → ${newRole.hexColor}`);
             }
+
             if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
                 changes.push(`**Permissions:** Updated`);
             }
+
             if (oldRole.mentionable !== newRole.mentionable) {
                 changes.push(`**Mentionable:** ${oldRole.mentionable ? "Yes" : "No"} → ${newRole.mentionable ? "Yes" : "No"}`);
             }
+
             if (oldRole.hoist !== newRole.hoist) {
                 changes.push(`**Hoisted:** ${oldRole.hoist ? "Yes" : "No"} → ${newRole.hoist ? "Yes" : "No"}`);
             }
+
             if (changes.length === 0) return;
 
             const embed = new EmbedBuilder()
@@ -340,6 +373,7 @@ module.exports = class LoggingCog {
             } catch (e) {}
 
             embed.setFooter({ text: `Role ID: ${newRole.id}` });
+
             await this.sendLog(newRole.guild, embed);
         });
 
@@ -354,8 +388,8 @@ module.exports = class LoggingCog {
                     { name: "User", value: newState.member.toString(), inline: true },
                     { name: "Channel", value: newState.channel.name, inline: true }
                 );
-
                 embed.setFooter({ text: `User ID: ${newState.member.id}` });
+
                 await this.sendLog(newState.member.guild, embed);
             } else if (oldState.channel && !newState.channel) {
                 const embed = new EmbedBuilder()
@@ -367,8 +401,8 @@ module.exports = class LoggingCog {
                     { name: "User", value: newState.member.toString(), inline: true },
                     { name: "Channel", value: oldState.channel.name, inline: true }
                 );
-
                 embed.setFooter({ text: `User ID: ${newState.member.id}` });
+
                 await this.sendLog(newState.member.guild, embed);
             } else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
                 const embed = new EmbedBuilder()
@@ -381,8 +415,8 @@ module.exports = class LoggingCog {
                     { name: "From", value: oldState.channel.name, inline: true },
                     { name: "To", value: newState.channel.name, inline: true }
                 );
-
                 embed.setFooter({ text: `User ID: ${newState.member.id}` });
+
                 await this.sendLog(newState.member.guild, embed);
             }
         });
