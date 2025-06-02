@@ -1,6 +1,6 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, ActivityType, MessageMentionTypes } = require('discord.js');
-const express = require('express'); // For hosting on a port
+const { Client, GatewayIntentBits, ActivityType, EmbedBuilder } = require('discord.js');
+const express = require('express');
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -21,7 +21,7 @@ const AntiRaidCog = require('./cogs/AntiRaidCog');
 const AntiNukeCog = require('./cogs/AntiNukeCog');
 const LoggingCog = require('./cogs/LoggingCog');
 
-// Express setup for keeping the bot alive or handling webhooks
+// Express setup
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -36,7 +36,7 @@ app.listen(PORT, () => {
 client.once('ready', async () => {
     console.log(`${client.user.tag} has logged in!`);
     console.log(`Bot ID: ${client.user.id}`);
-    
+
     console.log('Initializing database...');
     await db.initialize();
     console.log('Database initialized!');
@@ -45,27 +45,32 @@ client.once('ready', async () => {
     client.user.setActivity("Moderating the server | !help", { type: ActivityType.Playing });
 });
 
-// Mention handler
+// Mention handler with embed
 client.on('messageCreate', async (message) => {
-    if (!message.content) return;
-    if (message.author.bot) return;
+    if (!message.content || message.author.bot) return;
 
-    // Check if the bot was mentioned
     if (message.mentions.users.has(client.user.id)) {
-        message.reply({
-            content: '🔧 **Powered By Solace + Solbot** — discord.gg/solbot - in partnership with xcal',
-            allowedMentions: { repliedUser: false }
+        const embed = new EmbedBuilder()
+            .setTitle('Hello!')
+            .setDescription('🔧 **Powered By Solace + Solbot** — discord.gg/solbot - in partnership with xcal')
+            .setColor(0x00AE86)
+            .setTimestamp();
+
+        message.reply({ 
+            embeds: [embed], 
+            allowedMentions: { repliedUser: false } 
         });
     }
 });
 
+// Guild join log with embed
 client.on('guildCreate', async (guild) => {
     let logChannel = guild.channels.cache.find(ch => ch.name === 'mod-logs');
     if (!logChannel) {
         try {
             logChannel = await guild.channels.create({ 
                 name: 'mod-logs',
-                type: 0, // Text channel
+                type: 0,
                 permissionOverwrites: [
                     {
                         id: guild.roles.everyone,
@@ -77,7 +82,14 @@ client.on('guildCreate', async (guild) => {
                     }
                 ]
             });
-            await logChannel.send("🔧 **Moderation Log Channel Created**\nThis channel will log all moderation activities.");
+
+            const embed = new EmbedBuilder()
+                .setTitle('🔧 Moderation Log Channel Created')
+                .setDescription("This channel will log all moderation activities.")
+                .setColor(0x00FF00)
+                .setTimestamp();
+
+            await logChannel.send({ embeds: [embed] });
         } catch (error) {
             console.error(`Could not create log channel in ${guild.name}:`, error.message);
         }
