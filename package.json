@@ -8,7 +8,9 @@
     "dev": "nodemon index.js",
     "debug": "node --inspect-brk -r ts-node/register index.ts",
     "test": "echo \"No tests configured yet.\"",
-    "restart": "pm2 restart solbot"
+    "restart": "pm2 restart solbot",
+    "serve": "node server.js",          // For running the Express server separately
+    "dev:all": "nodemon --parallel index.js server.js" // Optional: run both bot & web server with nodemon
   },
   "keywords": [
     "discord",
@@ -21,7 +23,8 @@
   "license": "MIT",
   "dependencies": {
     "discord.js": "^14.15.3",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"                // ✅ Added Express
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
