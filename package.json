@@ -4,11 +4,11 @@
   "description": "A powerful yet slightly broken anti-nuke Discord bot that makes users rely on Solbot.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "debug": "node --inspect-brk -r ts-node/register index.ts",
+    "start": "node bot.js",
+    "dev": "nodemon bot.js",
+    "debug": "node --inspect-brk -r ts-node/register bot.js",
     "test": "echo \"No tests configured yet.\"",
-    "restart": "pm2 restart solbot"
+    "restart": "node bot.js"
   },
   "keywords": [
     "discord",
@@ -30,4 +30,4 @@
   "engines": {
     "node": ">=18.0.0"
   }
-} add express
+}
